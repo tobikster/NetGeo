@@ -1,17 +1,27 @@
 from subprocess import Popen, PIPE
-import csv
-import json
-import math
-import os
+import csv, json, math
+import os, platform
 import re
 import timeit
+import urllib2
 
 EARTH_RADIUS = 6371.009
 OUTPUT_FILE_NAME = 'result.csv'
 
 def getHostLocation(ipAddr = ''):
-	hostInfo = json.loads(Popen('curl -s ipinfo.io{}/json'.format('' if ipAddr=='' else '/{}'.format(ipAddr)), shell=True, stdout=PIPE).stdout.read())
-	location = tuple([math.radians(float(x)) for x in hostInfo['loc'].split(',')])
+	location = None
+	try:
+		resp = urllib2.urlopen('http://ipinfo.io{}/json'.format('' if ipAddr == '' else '/{}'.format(ipAddr)))
+		if resp.getcode() == 200:
+			jsonResult = json.loads(resp.read())
+			if 'loc' in jsonResult and jsonResult['loc'] != '':
+				location = tuple([math.radians(float(x)) for x in jsonResult['loc'].split(',')])
+			else:
+				print 'Result does not contains localization info for ip address "{}"!'.format(ipAddr)
+		else:
+			print 'Cannot fetch host location!'
+	except urllib2.HTTPError:
+		pass
 	return location
 
 def getDistance(start, end):
@@ -23,18 +33,29 @@ def getDistance(start, end):
 
 def getMeanRTT(ipAddress, count=4):
 	meanRTT = None
-	pingResult = Popen('ping -q -c {} {}'.format(count, ipAddress), shell=True, stdout=PIPE).stdout.read().splitlines()
-	for line in pingResult:
-		match = re.match('rtt min/avg/max/mdev = (?P<rttMin>.*)/(?P<rttAvg>.*)/(?P<rttMax>.*)/(?P<rttMdev>.*) ms', line)
-		if match != None:
-			meanRTT = match.group('rttAvg')
+	systemType= platform.system()
+	pingCommand = None
+	if systemType == 'Linux':
+		pingCommand = 'ping -q -c {1} {0}'.format(ipAddress, count)
+	if pingCommand != None:
+		pingResult = Popen(pingCommand, shell=True, stdout=PIPE).stdout.read().splitlines()
+		for line in pingResult:
+			match = re.match('rtt min/avg/max/mdev = (?P<rttMin>.*)/(?P<rttAvg>.*)/(?P<rttMax>.*)/(?P<rttMdev>.*) ms', line)
+			if match != None:
+				meanRTT = match.group('rttAvg')
 	return meanRTT
 
 def getDownloadTime(ipAddr):
-	startTime = timeit.default_timer()
-	Popen('wget {} -O /dev/null -q'.format(ipAddr), shell=True).wait()
-	endTime = timeit.default_timer()
-	return endTime - startTime
+	result = None
+	try:
+		startTime = timeit.default_timer()
+		resp = urllib2.urlopen('http://{}'.format(ipAddr))
+		endTime = timeit.default_timer()
+		if resp.getcode() == 200:
+			result = (endTime - startTime) / float(resp.headers['content-length'])
+	except urllib2.HTTPError:
+		pass
+	return result
 
 def main(ipAddressesList=['212.77.100.101']):
 	myLocalization = getHostLocation()
