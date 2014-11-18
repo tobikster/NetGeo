@@ -17,6 +17,9 @@ Lokalizację oraz nazwę pliku wyjściowego można zmienić korzystająć z opcj
 ```
 NetGeo --output <nazwa pliku wyjściowego> <nazwa pliku wejściowego>
 ```
+Plik wynikowy zapisywany jest w formaci CSV, poszczególne pola oddzielane są średnikami.
+W kolumnach znajdują się informacje o adresie IP badanego węzła, jego fizycznej lokalizacji (podanej w radianach), odległości od lokalizacji komputera wyznaczonej w czasie uruchomienia programu, średniego czasu RTT oraz czasu pobierania domyślnej strony (pobieranej po podaniu adresu IP).
+Czas pobieranie jest znormalizowany, poprzez podzielenie faktycznego czasu pobierania przez jego rozmiar.
 
 Możliwa jest również zmiana domyślnego czasu oczekiwania na odpowiedzi podczas badania ping za pomocą parametru --pingTime
 ```
