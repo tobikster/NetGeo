@@ -31,6 +31,9 @@ Opis dodatkowych opcji programu dostępny jest po wykonaniu polecenia.
 NetGeo --help
 ```
 
+Do działania NetGeo wymagany jest program ping.
+Jest on domyślnie zainstalowany na większości dystrybucji Linuxa.
+
 # 2. Podręcznik administratora
 NetGeo dostępny jest jedynie na platformę Linux, jednak ewentualne portowanie na inne platformy nie powinno przysparzać problemów.
 Szczegóły opisane są w podręczniku programisty.
