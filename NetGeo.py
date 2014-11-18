@@ -1,12 +1,12 @@
 """
-Usage: NetGeo.py [-hv -o OUTPUT -i INPUT --pingTime PING_COUNT] 
+Usage: NetGeo.py [options] INPUT_FILE 
 
 Options:
     -o --output OUTPUT      output file [default: result.csv]
-    -i --input INPUT        input file [default: input.txt]
-    -h --help               shows help and exit
-    -v --verbose            Print progress
     --pingTime PING_TIME    number of used PING packets to estimate mean RTT [default: 4]
+    -v --verbose            Print progress
+    -h --help               shows this message and exit
+    --version               shows program version
 	
 """
 
@@ -21,6 +21,7 @@ import urllib2
 
 EARTH_RADIUS = 6371.009
 MAX_IP_LIST_SIZE = 1000
+VERSION = '1.0'
 
 def getHostLocation(ipAddr = ''):
 	location = None
@@ -79,35 +80,43 @@ def getDownloadTime(ipAddr):
 		print('WRN: Error while downloading default page from {0}'.format(ipAddr), file=sys.stderr)
 	return result
 
-def main(inputFilePath, outputFilePath, pingTime, verbose):
+def main():
+	args = docopt(__doc__, version=VERSION)
+	inputFilePath = args['INPUT_FILE']
+	outputFilePath = args['--output']
+	pingTime = args['--pingTime']
+	verbose = args['--verbose']
+
 	if verbose:
 		print('Geting home host localization')
 	myLocalization = getHostLocation()
 	if myLocalization != None:
-		with open(outputFilePath, 'w') as outputFile:
-			csvWriter = csv.writer(outputFile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvWriter.writerow(('IP address', 'localization', 'distance', 'RTT time', 'downlading time'))
-			with open(inputFilePath, 'r') as inputFile:
-				usedIpAddresses = []
-				for ipAddress in [x.strip() for x in inputFile]:
-					if len(usedIpAddresses) < MAX_IP_LIST_SIZE:
-						if ipAddress not in usedIpAddresses:
-							usedIpAddresses.append(ipAddress)
-							if verbose:
-								print('Processing {0}'.format(ipAddress))
-							targetLocalization = getHostLocation(ipAddress)
-							distance = getDistance(myLocalization, targetLocalization)
-							meanRTT = getMeanRTT(ipAddress, pingTime)
-							downloadTime = getDownloadTime(ipAddress)
-							csvWriter.writerow((ipAddress, targetLocalization, distance, meanRTT, downloadTime))
+		try:
+			with open(outputFilePath, 'w') as outputFile:
+				csvWriter = csv.writer(outputFile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+				csvWriter.writerow(('IP address', 'localization', 'distance', 'RTT time', 'downlading time'))
+				with open(inputFilePath, 'r') as inputFile:
+					usedIpAddresses = []
+					for ipAddress in [x.strip() for x in inputFile]:
+						if len(usedIpAddresses) < MAX_IP_LIST_SIZE:
+							if ipAddress not in usedIpAddresses:
+								usedIpAddresses.append(ipAddress)
+								if verbose:
+									print('Processing {0}'.format(ipAddress))
+								targetLocalization = getHostLocation(ipAddress)
+								distance = getDistance(myLocalization, targetLocalization)
+								meanRTT = getMeanRTT(ipAddress, pingTime)
+								downloadTime = getDownloadTime(ipAddress)
+								csvWriter.writerow((ipAddress, targetLocalization, distance, meanRTT, downloadTime))
+							else:
+								print('WRN: IP address {0} has been checked before! Skipping'.format(ipAddress), file=sys.stderr)
 						else:
-							print('WRN: IP address {0} has been checked before! Skipping'.format(ipAddress), file=sys.stderr)
-					else:
-						print('WRN: Maximum number of tested IP addresses ({0}) was reached! Breaking'.format(MAX_IP_LIST_SIZE))
-						break
+							print('WRN: Maximum number of tested IP addresses ({0}) was reached! Breaking'.format(MAX_IP_LIST_SIZE))
+							break
+		except IOError:
+			print('ERR: Input/output error!')
 	else:
 		print('ERR: Cannot estimate home host localization! Exiting', file=sys.stderr)
 
 if __name__ == '__main__':
-	args = docopt(__doc__)
-	main(args['--input'], args['--output'], args['--pingTime'], args['--verbose'])
+	main()
