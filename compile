@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ -f NetGeo ];
+then
+    rm NetGeo
+fi
+
+zip -r NetGeo.zip *
+echo '#!/usr/bin/env python' | cat - NetGeo.zip > NetGeo
+rm NetGeo.zip
