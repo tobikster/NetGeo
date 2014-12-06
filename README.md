@@ -3,61 +3,80 @@ NetGeo
 Badanie fizycznej odległości pomiędzy węzłami w Internecie
 
 # 1. Podręcznik użytkownika
-Program NetGeo jest bardzo intuicyjny w użyciu.
-Jedynym wymaganiem jest przygotowanie pliku wejściowego, w postaci adresów IP jakie mają zostać przebadane.
-Każdy adres musi być w osobnym wierszu.
+Program NetGeo jest narzędziem służącym do badania zależności pomiędzy fizyczną odległością węzłów w Internecie, a innymi wielkościami, takimi jak średni czas RTT oraz czas ściągania pliku z serwera.
+Program posiada jednynie interfejs konsolowy.
 
-Następnie, program uruchamiany jest poprzez wywołanie komendy
+Danymi wejściowymi programu jest plik tekstowy zawierający badane adresy IP - każdy adres w nowym wierszu.
+Wyniki eksperymentu zapisywane są w formacie CSV - wartości oddzielone średnikami.
+W kolejnych kolumnach pliku zapisane są:
+- adres IP badanego węzła
+- jego fizyczna lokalizacja (podana w radianach)
+- odległość od hosta do wyznaczonego położenia komputera, na którym zostało uruchomione narzędzie NetGeo
+- średni czas RTT
+- czas pobierania domyślnego pliku z serwera (podzielony przez jego długość w celu normalizacji)
 
-```
-NetGeo <ścieżka do pliku wejściowego>
-```
-
-Rezultat działania programu domyślnie zapisywany jest w pliku result.csv, w lokalizacji, z jakiej został uruchomiony program.
-Lokalizację oraz nazwę pliku wyjściowego można zmienić korzystająć z opcji --output:
-
-```
-NetGeo --output <nazwa pliku wyjściowego> <nazwa pliku wejściowego>
-```
-
-Plik wynikowy zapisywany jest w formaci CSV, poszczególne pola oddzielane są średnikami.
-W kolumnach znajdują się informacje o adresie IP badanego węzła, jego fizycznej lokalizacji (podanej w radianach), odległości od lokalizacji komputera wyznaczonej w czasie uruchomienia programu, średniego czasu RTT oraz czasu pobierania domyślnej strony (pobieranej po podaniu adresu IP).
-Czas pobieranie jest znormalizowany, poprzez podzielenie faktycznego czasu pobierania przez jego rozmiar.
-
-Możliwa jest również zmiana domyślnego czasu oczekiwania na odpowiedzi podczas badania ping za pomocą parametru --pingTime
-
-```
-NetGeo --pingTime <czas oczekiwania w sekundach> <nazwa pliku wejściowego>
-```
-
-Opis dodatkowych opcji programu dostępny jest po wykonaniu polecenia.
+Opis opcji, z jakimi może zostać uruchomione narzędzie jest dostępny po wydaniu polecenia
 
 ```
 NetGeo --help
 ```
 
-Do działania NetGeo wymagany jest program ping.
-Jest on domyślnie zainstalowany na większości dystrybucji Linuxa.
+Program wymaga jednego argumentu - ścieżki do pliku z adresami IP.
+Uruchomienie następuje po wydaniu polecenia
+
+```
+NetGeo <ścieżka do pliku>
+```
+
+Rezultat działania programu zapisywany jest w pliku *result.csv*, w lokalizacji, z jakiej został uruchomiony program.
+
+## Opcje dodatkowe
+Wywołując program z dodatkowymi opcjami można zmienić domyślne wartości parametrów:
+- Lokalizację oraz pliku wynikowego można zmienić korzystająć z opcji --output:
+
+```
+NetGeo --output <nazwa pliku wyjściowego> <nazwa pliku wejściowego>
+```
+
+- Czas badania narzędziem PING można zmienić z domyślnej wartości 5 s za pomocą opcji --pingTime
+
+```
+NetGeo --pingTime <czas w sekundach> <ścieżka do pliku>
+```
+
+Opis wszystkich opcji programu dostępny jest po wykonaniu polecenia.
+
+```
+NetGeo --help
+```
 
 # 2. Podręcznik administratora
 NetGeo dostępny jest jedynie na platformę Linux, jednak ewentualne portowanie na inne platformy nie powinno przysparzać problemów.
 Szczegóły opisane są w podręczniku programisty.
 
-Aby zainstalować narzędzie, wystarczy pobrać kod źródłowy, np. za pomocą polecenia 
-
+Aby zainstalować narzędzie, wystarczy pobrać kod źródłowy, np. za pomocą polecenia
+ 
 ```
 git clone https://github.com/tobikster/NetGeo.git
 ```
 
-Następnie należy wyprodukować plik wykonywalny za pomocą skryptu *compile*, który znajduje się w głównym katalogu projektu.
+Instalacja narzędzia wykonywana jest za pomocą dołączonego do projektu skryptu **install**, który należy wywołać poleceniem
 
 ```
 cd <ścieżka do repozytorium>
-./compile
+./install.sh
 ```
 
-Program zostanie zainstalowany w katalogu *bin* znajdującym się w folderze domowym bieżącego użytkownika.
-Dzięki temu będzie możliwe używanie go prosto z lini komend (bash)
+Program zostanie zainstalowany w katalogu *~/bin*.
+Dzięki temu będzie możliwe używanie go prosto z lini komend (bash) - jeżeli katalog ten jest uwzględniony w zmiennej środowiskowej PATH.
+Jeśli tak nie jest, należy dodać katalog ~/bin do zmiennej PATH, np. dodając do pliku ~/.profile linię
+
+```
+export PATH="$HOME/bin:$PATH"
+```
+
+Do działania programu wymagane jest narzędzie PING (dostępne domyślnie na większości systemów Linux).
+Aby skrypt instalacyjny zadziałał poprawnie, wymagany jest program zip.
 
 # 3. Podręcznik programisty
 Program napisany jest z w języku **Python**, jako zbiór funkcji.
