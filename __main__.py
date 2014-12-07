@@ -1,5 +1,7 @@
 """
-Usage: NetGeo.py [options] INPUT_FILE
+Usage:
+    NetGeo analyze [options] INPUT_FILE
+    NetGeo translate [options] INPUT_FILE OUTPUT_FILE
 
 Options:
     -o --output OUTPUT      output file [default: result.csv]
@@ -19,13 +21,31 @@ import sys
 import platform
 import timeit
 import urllib2
+import socket
 
 from docopt import docopt
 
 
 EARTH_RADIUS = 6371.009
 MAX_IP_LIST_SIZE = 1000
-VERSION = '1.0'
+VERSION = '1.0.2'
+
+
+def get_ip_address(url):
+    result = None
+    try:
+        result = socket.gethostbyname(url)
+    except socket.gaierror:
+        pass
+    return result
+
+
+def translate_urls_to_ip(input_file_path, output_file_path):
+    with open(input_file_path, 'r') as input_file, open(output_file_path, 'w') as output_file:
+        for line in input_file:
+            ip_address = get_ip_address(line.rstrip())
+            if ip_address is not None:
+                output_file.write('{}\n'.format(ip_address))
 
 
 def get_host_location(ip_address=''):
@@ -51,7 +71,7 @@ def get_distance(start, end):
         delta_latitude = start[0] - end[0]
         mean_latitude = (start[0] + end[0]) / 2
         delta_longitude = start[1] - end[1]
-        distance = EARTH_RADIUS * math.sqrt(delta_latitude**2 + (math.cos(mean_latitude) * delta_longitude)**2)
+        distance = EARTH_RADIUS * math.sqrt(delta_latitude ** 2 + (math.cos(mean_latitude) * delta_longitude) ** 2)
     else:
         print("WRN: Either home host or target host localization are not known! Cannot calculate distance!", file=sys.stderr)
     return distance
@@ -103,42 +123,49 @@ def get_download_time(ip_address):
 
 def main():
     args = docopt(__doc__, version=VERSION)
-    input_file_path = args['INPUT_FILE']
-    output_file_path = args['--output']
-    ping_time = args['--pingTime']
     verbose = args['--verbose']
 
-    if verbose:
-        print('Getting home host localization')
-    my_localization = get_host_location()
-    if my_localization is not None:
-        try:
-            with open(output_file_path, 'w') as outputFile:
-                csv_writer = csv.writer(outputFile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-                csv_writer.writerow(('IP address', 'localization', 'distance', 'RTT time', 'hops count', 'downloading time'))
-                with open(input_file_path, 'r') as inputFile:
-                    used_ip_addresses = []
-                    for ip_address in [x.strip() for x in inputFile]:
-                        if len(used_ip_addresses) < MAX_IP_LIST_SIZE:
-                            if ip_address not in used_ip_addresses:
-                                used_ip_addresses.append(ip_address)
-                                if verbose:
-                                    print('Processing {0}'.format(ip_address))
-                                target_localization = get_host_location(ip_address)
-                                distance = get_distance(my_localization, target_localization)
-                                mean_rtt = get_mean_rtt(ip_address, ping_time)
-                                hops_count = get_hops_count(ip_address)
-                                download_time = get_download_time(ip_address)
-                                csv_writer.writerow((ip_address, target_localization, distance, mean_rtt, hops_count, download_time))
+    if args['analyze']:
+        input_file_path = args['INPUT_FILE']
+        output_file_path = args['--output']
+        ping_time = args['--pingTime']
+
+        if verbose:
+            print('Getting home host localization')
+        my_localization = get_host_location()
+        if my_localization is not None:
+            try:
+                with open(output_file_path, 'w') as outputFile:
+                    csv_writer = csv.writer(outputFile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                    csv_writer.writerow(('IP address', 'localization', 'distance', 'RTT time', 'hops count', 'downloading time'))
+                    with open(input_file_path, 'r') as inputFile:
+                        used_ip_addresses = []
+                        for ip_address in [x.strip() for x in inputFile]:
+                            if len(used_ip_addresses) < MAX_IP_LIST_SIZE:
+                                if ip_address not in used_ip_addresses:
+                                    used_ip_addresses.append(ip_address)
+                                    if verbose:
+                                        print('Processing {0}'.format(ip_address))
+                                    target_localization = get_host_location(ip_address)
+                                    distance = get_distance(my_localization, target_localization)
+                                    mean_rtt = get_mean_rtt(ip_address, ping_time)
+                                    hops_count = get_hops_count(ip_address)
+                                    download_time = get_download_time(ip_address)
+                                    csv_writer.writerow((ip_address, target_localization, distance, mean_rtt, hops_count, download_time))
+                                else:
+                                    print('WRN: IP address {0} has been checked before! Skipping'.format(ip_address), file=sys.stderr)
                             else:
-                                print('WRN: IP address {0} has been checked before! Skipping'.format(ip_address), file=sys.stderr)
-                        else:
-                            print('WRN: Maximum number of tested IP addresses ({0}) was reached! Breaking'.format(MAX_IP_LIST_SIZE))
-                            break
-        except IOError:
-            print('ERR: Input/output error!')
-    else:
-        print('ERR: Cannot estimate home host localization! Exiting', file=sys.stderr)
+                                print('WRN: Maximum number of tested IP addresses ({0}) was reached! Breaking'.format(MAX_IP_LIST_SIZE))
+                                break
+            except IOError:
+                print('ERR: Input/output error!')
+        else:
+            print('ERR: Cannot estimate home host localization! Exiting', file=sys.stderr)
+
+    elif args['translate']:
+        input_file_path = args['INPUT_FILE']
+        output_file_path = args['OUTPUT_FILE']
+        translate_urls_to_ip(input_file_path, output_file_path)
 
 if __name__ == '__main__':
     main()
