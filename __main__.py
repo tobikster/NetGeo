@@ -121,6 +121,15 @@ def get_download_time(ip_address):
     return result
 
 
+def write_result_row(csv_writer, my_localization, ip_address, ping_time):
+    target_localization = get_host_location(ip_address)
+    distance = get_distance(my_localization, target_localization)
+    mean_rtt = get_mean_rtt(ip_address, ping_time)
+    hops_count = get_hops_count(ip_address)
+    download_time = get_download_time(ip_address)
+    csv_writer.writerow((ip_address, target_localization, distance, mean_rtt, hops_count, download_time))
+
+
 def main():
     args = docopt(__doc__, version=VERSION)
     verbose = args['--verbose']
@@ -135,37 +144,29 @@ def main():
         my_localization = get_host_location()
         if my_localization is not None:
             try:
-                with open(output_file_path, 'w') as outputFile:
+                with open(input_file_path, 'r') as inputFile, open(output_file_path, 'w') as outputFile:
                     csv_writer = csv.writer(outputFile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                     csv_writer.writerow(('IP address', 'localization', 'distance', 'RTT time', 'hops count', 'downloading time'))
-                    with open(input_file_path, 'r') as inputFile:
-                        used_ip_addresses = []
-                        for ip_address in [x.strip() for x in inputFile]:
-                            if len(used_ip_addresses) < MAX_IP_LIST_SIZE:
-                                if ip_address not in used_ip_addresses:
-                                    used_ip_addresses.append(ip_address)
-                                    if verbose:
-                                        print('Processing {0}'.format(ip_address))
-                                    target_localization = get_host_location(ip_address)
-                                    distance = get_distance(my_localization, target_localization)
-                                    mean_rtt = get_mean_rtt(ip_address, ping_time)
-                                    hops_count = get_hops_count(ip_address)
-                                    download_time = get_download_time(ip_address)
-                                    csv_writer.writerow((ip_address, target_localization, distance, mean_rtt, hops_count, download_time))
-                                else:
-                                    print('WRN: IP address {0} has been checked before! Skipping'.format(ip_address), file=sys.stderr)
+                    used_ip_addresses = []
+                    for ip_address in [x.strip() for x in inputFile]:
+                        if len(used_ip_addresses) < MAX_IP_LIST_SIZE:
+                            if ip_address not in used_ip_addresses:
+                                used_ip_addresses.append(ip_address)
+                                if verbose:
+                                    print('Processing {0}'.format(ip_address))
+                                write_result_row(csv_writer, my_localization, ip_address, ping_time)
                             else:
-                                print('WRN: Maximum number of tested IP addresses ({0}) was reached! Breaking'.format(MAX_IP_LIST_SIZE))
-                                break
+                                print('WRN: IP address {0} has been checked before! Skipping'.format(ip_address), file=sys.stderr)
+                        else:
+                            print('WRN: Maximum number of tested IP addresses ({0}) was reached! Breaking'.format(MAX_IP_LIST_SIZE))
+                            break
             except IOError:
                 print('ERR: Input/output error!')
         else:
             print('ERR: Cannot estimate home host localization! Exiting', file=sys.stderr)
 
     elif args['translate']:
-        input_file_path = args['INPUT_FILE']
-        output_file_path = args['OUTPUT_FILE']
-        translate_urls_to_ip(input_file_path, output_file_path)
+        translate_urls_to_ip(args['INPUT_FILE'], args['OUTPUT_FILE'])
 
 if __name__ == '__main__':
     main()
